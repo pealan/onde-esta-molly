@@ -1,0 +1,32 @@
+services:
+  dev:
+    build: .
+    image: molly-dev
+    working_dir: /work
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      HOME: /home/dev
+      TERM: ${TERM:-xterm-256color}
+    volumes:
+      - .:/work
+      - ${HOME}/.ssh:/home/dev/.ssh:ro
+      - ${HOME}/.gitconfig:/home/dev/.gitconfig:ro
+      - gh-config:/home/dev/.config/gh
+    stdin_open: true
+    tty: true
+
+  preview:
+    build: .
+    image: molly-dev
+    working_dir: /work/bundle
+    command: ["python3", "-m", "http.server", "8000", "--bind", "0.0.0.0"]
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      HOME: /home/dev
+    ports:
+      - "9876:8000"
+    volumes:
+      - .:/work
+
+volumes:
+  gh-config:

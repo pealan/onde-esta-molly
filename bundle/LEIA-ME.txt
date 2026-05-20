@@ -1,0 +1,48 @@
+==========================================================
+  ONDE ESTÁ O MOLLY?  —  Arquivo dos jogos do HumorTadela
+==========================================================
+
+Versão online: https://molly.gente.com/
+
+O QUE É ISTO
+------------
+Os 13 jogos de "caça ao Molly" do site HumorTadela — a paródia
+brasileira de "Onde está Wally?". Cada jogo é um cenário cheio de
+celebridades e objetos escondidos que você precisa encontrar
+clicando neles.
+
+Esta é uma cópia OFFLINE, preservada a partir do Internet Archive
+(web.archive.org). Corresponde à versão "revivida" do site
+(humortadela.bol.uol.com.br, capturada entre 2012 e 2016).
+
+COMO JOGAR
+----------
+1. Abra o arquivo  index.html  em qualquer navegador moderno.
+2. Escolha um dos 13 jogos.
+3. Clique nos personagens escondidos no cenário. Ao achar um,
+   aparece um aviso com o ícone e o nome dele, e o local pisca no
+   cenário. O painel mostra tentativas e quantos você já achou.
+4. Não precisa de internet nem de plugins (Flash etc.).
+
+O QUE FOI PRESERVADO / O QUE SE PERDEU
+--------------------------------------
+* Preservado: os 13 jogos jogáveis, os cenários, os ícones dos
+  personagens, as telas de apresentação e todo o código.
+* Perdido: o site ORIGINAL (2000–2007) tinha um "causo" engraçado
+  que aparecia ao clicar em cada personagem. Esse conteúdo NÃO
+  sobreviveu em nenhum arquivo (só foram capturadas páginas de erro).
+  Nenhuma das versões revividas recriou esses textos.
+* Recriado: como o gag original se perdeu, esta cópia adiciona um
+  aviso (pop-up) ao clicar num personagem, mostrando o ícone e o
+  nome dele — feito com os próprios materiais do jogo (js/molly-extras.js).
+* O jogo 9 (de 14) nunca foi republicado — daí a numeração 1–8, 10–14.
+
+ESTRUTURA
+---------
+  index.html .......... página inicial com os 13 jogos
+  jogo-01.html .. jogo-14.html ... os jogos
+  css/, js/ ........... bibliotecas (jQuery / jQuery-UI)
+  images/molly/ ....... cenários, ícones e apresentações
+
+Fonte: humortadela.bol.uol.com.br e www.humortadela.com.br
+via web.archive.org. Uso pessoal / preservação histórica.
