@@ -1,0 +1,33 @@
+# ── extraction scratch (Wayback CDX dumps + intermediate downloads) ──
+# These were the raw scrape inputs/outputs; the bundle is the durable artifact.
+cdx_*.txt
+sweep_*.txt
+rv_*.txt
+im_allcaps.txt
+ip_allcaps.txt
+mapimg_cdx.txt
+dl_*.conf
+dl1.conf
+game_info.json
+
+# scratch HTML from early iterations (single-page pulls before the full sweep)
+moll_*.html
+cmolly_*.html
+
+# raw extracted sources kept locally for re-runs, not for the repo
+pages/
+maps/
+revived/
+
+# old packaged deliverable — rebuildable from bundle/
+onde-esta-o-molly.zip
+
+# python / editor cruft
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

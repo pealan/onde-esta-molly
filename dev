@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Tiny wrapper: run a command (or interactive shell) inside the molly-dev container.
+#   ./dev                  → bash shell
+#   ./dev python3 foo.py   → one-off command
+#   ./dev gh auth login    → ditto (interactive; gh token persists in the gh-config volume)
+set -euo pipefail
+cd "$(dirname "$0")"
+export HOST_UID="$(id -u)"
+export HOST_GID="$(id -g)"
+if [ $# -eq 0 ]; then
+    exec docker compose run --rm dev bash
+else
+    exec docker compose run --rm dev "$@"
+fi

@@ -1,0 +1,3 @@
+# Build context only needs the Dockerfile — everything else is bind-mounted.
+*
+!Dockerfile
