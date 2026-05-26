@@ -117,14 +117,20 @@ Pillow + fonts) runs reproducibly on any host with Docker.
 Static rsync to nginx, using a purpose-bound SSH alias:
 
 ```bash
-rsync -avz --delete bundle/ gente-prod-molly:/var/www/molly.gente.com/
+rsync -avz --delete bundle/ gente-prod-molly:/
 ```
 
 The alias `gente-prod-molly` lives in `~/.ssh/config` and binds to a
 dedicated `ed25519` key. Server-side, that key's `authorized_keys` entry
 uses `restrict,command="rrsync /var/www/molly.gente.com"` so the key
-can *only* rsync into that one directory — even on compromise, the blast
-radius is one docroot. Least-privilege IAM, end-to-end.
+can *only* rsync into that one directory — no shell, no port forwarding,
+no other docroots. Even on compromise the blast radius is one directory
+tree. Least-privilege IAM, end-to-end.
+
+The provisioning is fully scripted: [`scripts/server-provision.sh`](scripts/server-provision.sh)
+creates the service user, the docroot, the scoped `authorized_keys` entry,
+and the `rrsync` symlink in one idempotent run. Pair with the nginx +
+certbot snippet it prints at the end.
 
 ---
 
