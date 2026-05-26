@@ -1,0 +1,17 @@
+# Terraform state — contains the resource IDs, IPs, and sometimes secrets.
+# Local state is fine for a one-off portfolio deploy; migrate to an S3
+# backend if multiple humans ever apply this module.
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Local plugin cache + lockfile contents.
+.terraform/
+crash.log
+crash.*.log
+
+# Variable files contain real IPs, public keys, profile names.
+# The .example template IS committed; the real one isn't.
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
