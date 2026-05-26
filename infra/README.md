@@ -23,33 +23,45 @@ Terraform owns cloud resources, the bootstrap script owns OS configuration.
 
 ## One-time IAM setup
 
-You shouldn't run Terraform with your AWS root account. Create a dedicated
-IAM user with **only** the permissions this module needs:
+Don't run Terraform as the AWS root account. Create a dedicated `gente-admin`
+IAM user with **only** the permissions this module needs.
 
-1. **AWS Console → IAM → Users → Create user** — name it `gente-admin`,
-   uncheck "Provide user access to the AWS Management Console" (this is a
-   programmatic-only user).
-2. **Attach a custom policy** — copy
-   [`iam-policy-gente-admin.json`](iam-policy-gente-admin.json) verbatim.
-   It grants EC2 (instance + SG + EIP + key pair) and Route53
-   (record management) — no IAM, no S3, no nothing else.
-3. **Create access keys** (Security credentials → Create access key →
-   Command Line Interface). Save the *access key ID* and *secret*.
-4. **Configure locally**:
-   ```bash
-   aws configure --profile gente-admin
-   # AWS Access Key ID:     <paste>
-   # AWS Secret Access Key: <paste>
-   # Default region:        sa-east-1
-   # Default output format: json
-   ```
-5. **Verify**:
-   ```bash
-   aws --profile gente-admin sts get-caller-identity
-   ```
+The cleanest way is from **[AWS CloudShell](https://console.aws.amazon.com/cloudshell/)** —
+a free in-browser terminal that's already authenticated as your console
+session. No long-lived root access keys ever need to exist on disk.
 
-The Terraform `provider` block reads `profile = "gente-admin"` so it
+```bash
+# inside CloudShell:
+git clone https://github.com/pealan/onde-esta-molly && cd onde-esta-molly/infra
+bash bootstrap-iam.sh
+```
+
+[`bootstrap-iam.sh`](bootstrap-iam.sh) is idempotent. It creates the user,
+attaches [`iam-policy-gente-admin.json`](iam-policy-gente-admin.json) as
+an inline policy (EC2 + Route53 only — no IAM, no S3, nothing else), and
+prints a fresh access key in `aws configure` format. Copy it to your
+laptop, then close the CloudShell tab.
+
+On your laptop:
+
+```bash
+./dev aws configure --profile gente-admin
+# paste the access key + secret from the script's output
+# region: sa-east-1
+# output: json
+
+./dev aws --profile gente-admin sts get-caller-identity   # smoke test
+```
+
+The Terraform `provider` block reads `profile = "gente-admin"`, so it
 picks these creds up automatically.
+
+> **Why CloudShell and not local-with-root-keys?** Generating long-lived
+> access keys for the root account is the practice AWS most loudly tells
+> you not to do — those keys grant full account access and tend to leak.
+> CloudShell uses temporary session credentials from your existing login,
+> so the only persistent key in this whole flow is the scoped `gente-admin`
+> one this module needs.
 
 ---
 
