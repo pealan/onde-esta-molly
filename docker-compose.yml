@@ -12,6 +12,7 @@ services:
       - ${HOME}/.ssh:/home/dev/.ssh:ro
       - ${HOME}/.gitconfig:/home/dev/.gitconfig:ro
       - gh-config:/home/dev/.config/gh
+      - aws-config:/home/dev/.aws
     stdin_open: true
     tty: true
 
@@ -30,3 +31,4 @@ services:
 
 volumes:
   gh-config:
+  aws-config:

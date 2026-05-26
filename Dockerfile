@@ -25,6 +25,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/*
 
+# HashiCorp's apt repo (terraform) + AWS CLI v2 — both used by infra/.
+# AWS CLI v2 ships as a static bundle, not via apt; pick arch dynamically.
+RUN curl -fsSL https://apt.releases.hashicorp.com/gpg \
+        | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com bookworm main" \
+        > /etc/apt/sources.list.d/hashicorp.list \
+    && apt-get update && apt-get install -y --no-install-recommends terraform unzip \
+    && AWS_ARCH=$(uname -m | sed 's/arm64/aarch64/') \
+    && curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o /tmp/awscliv2.zip \
+    && unzip -q /tmp/awscliv2.zip -d /tmp \
+    && /tmp/aws/install \
+    && rm -rf /tmp/aws /tmp/awscliv2.zip /var/lib/apt/lists/*
+
 RUN pip install --no-cache-dir Pillow==11.0.0
 
 # Loosen ImageMagick policy so PNG/JPG/GIF read+write are allowed under

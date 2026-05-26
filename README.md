@@ -99,9 +99,11 @@ A longer engineering log (per-iteration, with dead ends) lives in
 │   ├── images/molly/   ← scenes, icons, apresentação banners
 │   ├── og-card.png     ← 1200×630 social share card
 │   └── favicon.gif     ← Molly himself, from jogo 1
+├── infra/              ← Terraform: EC2 + EIP + SG + Route53 + scoped IAM policy
 ├── scripts/
-│   └── polish.py       ← idempotent: rebuilds landing, OG meta, favicon, card
-├── Dockerfile          ← dev image: Python + Pillow, ImageMagick, gh, rsync, ...
+│   ├── polish.py             ← idempotent: rebuilds landing, OG meta, favicon, card
+│   └── server-provision.sh   ← idempotent: bootstraps molly-deploy + rrsync on the box
+├── Dockerfile          ← dev image: Python + Pillow + ImageMagick + gh + rsync + terraform + awscli
 ├── docker-compose.yml  ← `dev` shell + `preview` http server on :9876
 ├── dev                 ← `./dev <cmd>` runs anything in the container
 └── WORK_DIARY.md       ← session-by-session engineering log
@@ -127,10 +129,17 @@ can *only* rsync into that one directory — no shell, no port forwarding,
 no other docroots. Even on compromise the blast radius is one directory
 tree. Least-privilege IAM, end-to-end.
 
-The provisioning is fully scripted: [`scripts/server-provision.sh`](scripts/server-provision.sh)
-creates the service user, the docroot, the scoped `authorized_keys` entry,
-and the `rrsync` symlink in one idempotent run. Pair with the nginx +
-certbot snippet it prints at the end.
+The provisioning is split cleanly between infrastructure and configuration:
+
+- **[`infra/`](infra/)** — Terraform module that creates the EC2 instance,
+  Elastic IP, security group, EC2 key pair, and Route53 A record. One
+  `terraform apply`, ~3 minutes, cost ~US$3/month in `sa-east-1`. Includes
+  a scoped IAM policy ([`infra/iam-policy-gente-admin.json`](infra/iam-policy-gente-admin.json))
+  so the deploy user gets only EC2 + Route53 — no IAM, no S3, nothing else.
+- **[`scripts/server-provision.sh`](scripts/server-provision.sh)** —
+  idempotent bootstrap that runs *on* the box once: creates the
+  `molly-deploy` service user, the docroot, the scoped `authorized_keys`
+  entry, and the `rrsync` symlink. Prints the nginx + certbot follow-up.
 
 ---
 
