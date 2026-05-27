@@ -8,6 +8,11 @@ output "dns_name" {
   value       = aws_route53_record.molly.fqdn
 }
 
+output "nameservers" {
+  description = "Paste these into your registrar (Porkbun → Domain Management → Authoritative Nameservers)."
+  value       = aws_route53_zone.this.name_servers
+}
+
 output "ssh_command" {
   description = "Copy-paste this to log in as the admin user."
   value       = "ssh ubuntu@${aws_route53_record.molly.fqdn}"
@@ -18,26 +23,31 @@ output "next_steps" {
   value       = <<-EOT
 
     ────────────────────────────────────────────────────────────────────
-    Infra is up. Public IP: ${aws_eip.web.public_ip}
-    DNS:                    ${aws_route53_record.molly.fqdn}
+    Infra is up.
+      Public IP:   ${aws_eip.web.public_ip}
+      DNS target:  ${aws_route53_record.molly.fqdn}
     ────────────────────────────────────────────────────────────────────
 
-    1. Wait ~1 min for DNS to propagate, then verify:
+    1. AT YOUR REGISTRAR (Porkbun → ${var.domain} → Authoritative Nameservers),
+       paste the 4 nameservers from the `nameservers` output above.
+       Save. Propagation takes minutes to hours.
+
+    2. Verify (re-run every few minutes until it returns the EIP):
          dig +short ${aws_route53_record.molly.fqdn}
          # should return: ${aws_eip.web.public_ip}
 
-    2. SSH into the box:
+    3. SSH into the box (once DNS resolves):
          ssh ubuntu@${aws_route53_record.molly.fqdn}
 
-    3. Bootstrap (creates molly-deploy user, scoped key, rrsync):
+    4. Bootstrap (creates molly-deploy user, scoped key, rrsync):
          curl -fsSLO https://raw.githubusercontent.com/pealan/onde-esta-molly/main/scripts/server-provision.sh
          chmod +x server-provision.sh && sudo ./server-provision.sh
          # the script prints the nginx + certbot commands to run next
 
-    4. From your laptop, in the repo root:
-         rsync -avz --delete bundle/ gente-prod-molly:/
+    5. From your laptop, in the repo root:
+         rsync -avz --delete bundle/ pealan-prod-molly:/
 
-    5. Verify:
+    6. Smoke-test:
          curl -sI https://${aws_route53_record.molly.fqdn}/   # 200 OK
 
   EOT

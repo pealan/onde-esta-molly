@@ -1,6 +1,6 @@
 # Onde está o Molly? — preservation archive
 
-> **Live:** https://molly.gente.com/ &nbsp;·&nbsp; **Source bundle:** [`bundle/`](bundle/)
+> **Live:** https://molly.pealan.dev/ &nbsp;·&nbsp; **Source bundle:** [`bundle/`](bundle/)
 
 An offline-playable rebuild of the **13 "Onde está o Molly?"** ("Where's
 Molly?") games — Brazilian-Portuguese parodies of *Where's Wally?* that
@@ -119,12 +119,12 @@ Pillow + fonts) runs reproducibly on any host with Docker.
 Static rsync to nginx, using a purpose-bound SSH alias:
 
 ```bash
-rsync -avz --delete bundle/ gente-prod-molly:/
+rsync -avz --delete bundle/ pealan-prod-molly:/
 ```
 
-The alias `gente-prod-molly` lives in `~/.ssh/config` and binds to a
+The alias `pealan-prod-molly` lives in `~/.ssh/config` and binds to a
 dedicated `ed25519` key. Server-side, that key's `authorized_keys` entry
-uses `restrict,command="rrsync /var/www/molly.gente.com"` so the key
+uses `restrict,command="rrsync /var/www/molly.pealan.dev"` so the key
 can *only* rsync into that one directory — no shell, no port forwarding,
 no other docroots. Even on compromise the blast radius is one directory
 tree. Least-privilege IAM, end-to-end.

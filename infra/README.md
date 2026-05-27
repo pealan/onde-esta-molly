@@ -1,4 +1,4 @@
-# `infra/` — AWS infrastructure for molly.gente.com
+# `infra/` — AWS infrastructure for molly.pealan.dev
 
 A small, self-contained Terraform module that stands up the production
 host for the [Onde está o Molly?](../) archive:
@@ -8,7 +8,8 @@ host for the [Onde está o Molly?](../) archive:
 | `aws_instance.web` | One `t4g.nano` Ubuntu 24.04 ARM box, gp3 EBS, IMDSv2-only |
 | `aws_security_group.web` | SSH **from your IP only**, HTTP/HTTPS public |
 | `aws_eip.web` | Static IP so DNS survives stop/start |
-| `aws_route53_record.molly` | `molly.gente.com` → the EIP |
+| `aws_route53_zone.this` | Hosted zone for the apex domain (delegate NS at registrar) |
+| `aws_route53_record.molly` | `molly.pealan.dev` → the EIP |
 | `aws_key_pair.admin` | Your laptop's pubkey, registered as the EC2 key pair |
 
 Cost: roughly **US$3–4/month** in `sa-east-1` (instance + EIP + 8 GiB gp3).
@@ -62,6 +63,11 @@ picks these creds up automatically.
 > CloudShell uses temporary session credentials from your existing login,
 > so the only persistent key in this whole flow is the scoped `gente-admin`
 > one this module needs.
+
+> **Updating the IAM policy?** Re-running `bash bootstrap-iam.sh` in
+> CloudShell is idempotent — it overwrites the inline policy with the
+> current file contents. Use this whenever `iam-policy-gente-admin.json`
+> changes (e.g. when this module needs a new IAM action).
 
 ---
 

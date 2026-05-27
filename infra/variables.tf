@@ -11,9 +11,9 @@ variable "aws_profile" {
 }
 
 variable "domain" {
-  description = "Apex domain. The Route53 hosted zone for this name must already exist."
+  description = "Apex domain. This module CREATES the Route53 hosted zone for it — paste the resulting NS records into your registrar."
   type        = string
-  default     = "gente.com"
+  default     = "pealan.dev"
 }
 
 variable "subdomain" {

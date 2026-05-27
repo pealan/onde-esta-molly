@@ -1,9 +1,10 @@
 # ============================================================================
-# molly.gente.com — AWS infrastructure
+# molly.pealan.dev — AWS infrastructure
 #
 # Provisions: one Ubuntu 24.04 ARM EC2 host (t4g.nano), a tight security
 # group (SSH from admin IP only, HTTP/HTTPS public), a static Elastic IP,
-# and the Route53 A record pointing the subdomain at it.
+# the Route53 hosted zone for the apex domain, and the A record pointing
+# the subdomain at the instance.
 #
 # Server-side configuration (user, scoped key, rrsync) is handled by
 # scripts/server-provision.sh — run on the box after `terraform apply`.
@@ -32,12 +33,15 @@ provider "aws" {
   }
 }
 
-# ── Lookups ────────────────────────────────────────────────────────────────
+# ── DNS zone (created here; NS records are emitted as an output for you
+#    to paste at your registrar so delegation works) ─────────────────────────
 
-data "aws_route53_zone" "this" {
-  name         = var.domain
-  private_zone = false
+resource "aws_route53_zone" "this" {
+  name    = var.domain
+  comment = "Managed by terraform — github.com/pealan/onde-esta-molly"
 }
+
+# ── Lookups ────────────────────────────────────────────────────────────────
 
 # Canonical's official Ubuntu 24.04 (Noble) ARM64 AMI — re-resolved each apply.
 data "aws_ami" "ubuntu_arm64" {
@@ -58,8 +62,8 @@ data "aws_ami" "ubuntu_arm64" {
 # ── Network access ─────────────────────────────────────────────────────────
 
 resource "aws_security_group" "web" {
-  name        = "gente-prod-web"
-  description = "molly.gente.com — SSH admin-only, HTTP/HTTPS public"
+  name        = "pealan-prod-web"
+  description = "molly.pealan.dev — SSH admin-only, HTTP/HTTPS public"
 
   ingress {
     description = "SSH (admin IP only)"
@@ -97,7 +101,7 @@ resource "aws_security_group" "web" {
 # ── Compute ────────────────────────────────────────────────────────────────
 
 resource "aws_key_pair" "admin" {
-  key_name   = "gente-admin"
+  key_name   = "pealan-admin"
   public_key = var.admin_public_key
 }
 
@@ -120,19 +124,19 @@ resource "aws_instance" "web" {
     http_put_response_hop_limit = 1
   }
 
-  tags = { Name = "gente-prod-molly" }
+  tags = { Name = "pealan-prod-molly" }
 }
 
 resource "aws_eip" "web" {
   instance = aws_instance.web.id
   domain   = "vpc"
-  tags     = { Name = "gente-prod-molly" }
+  tags     = { Name = "pealan-prod-molly" }
 }
 
 # ── DNS ────────────────────────────────────────────────────────────────────
 
 resource "aws_route53_record" "molly" {
-  zone_id = data.aws_route53_zone.this.zone_id
+  zone_id = aws_route53_zone.this.zone_id
   name    = "${var.subdomain}.${var.domain}"
   type    = "A"
   ttl     = 300
