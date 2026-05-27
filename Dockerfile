@@ -46,7 +46,10 @@ RUN pip install --no-cache-dir Pillow==11.0.0
 RUN sed -i 's|<policy domain="coder" rights="none" pattern="\(PS\|EPS\|PDF\|XPS\)"/>|<!-- & -->|g' /etc/ImageMagick-6/policy.xml || true
 
 # Pre-create a writable HOME that any host UID can use.
-RUN mkdir -p /home/dev/.config/gh /home/dev/.cache \
+# Named-volume mount points (.config/gh, .aws) must exist in the image with
+# writable perms — otherwise Docker creates them as root-owned on first
+# mount and non-root container users can't write to them.
+RUN mkdir -p /home/dev/.config/gh /home/dev/.cache /home/dev/.aws \
     && chmod -R 777 /home/dev
 
 WORKDIR /work
