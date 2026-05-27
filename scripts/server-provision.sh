@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # ============================================================================
-# molly.gente.com — server-side provisioning
+# molly.pealan.dev — server-side provisioning
 #
 # Bootstraps the deploy target for the "Onde está o Molly?" archive on a
 # fresh Debian/Ubuntu host. Run ONCE on the server, as root (or with sudo).
 #
 # What this does, in order:
 #   1. Creates a dedicated, password-less service user `molly-deploy`
-#   2. Creates the docroot at /var/www/molly.gente.com (writable by service user)
+#   2. Creates the docroot at /var/www/molly.pealan.dev (writable by service user)
 #   3. Installs the client-side ed25519 public key, scoped via OpenSSH's
 #      `restrict` directive + rrsync — the key can ONLY rsync into that one
 #      directory, no shell, no port forwarding, no exec.
 #   4. Symlinks rrsync onto PATH if your distro hides it under /usr/share/doc.
 #
 # What this does NOT do (handle these separately, see "next steps" at end):
-#   - DNS A record for molly.gente.com
+#   - DNS A record for molly.pealan.dev
 #   - nginx vhost + TLS via certbot
 #   - The first rsync upload
 #
@@ -30,8 +30,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 DEPLOY_USER="molly-deploy"
-DOCROOT="/var/www/molly.gente.com"
-PUBKEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDQsIli3ORU+rxjZh8EeC48BruZ98CIP2fFeF4d2sP7O gente-prod-molly deploy key (2026-05-20)'
+DOCROOT="/var/www/molly.pealan.dev"
+PUBKEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDQsIli3ORU+rxjZh8EeC48BruZ98CIP2fFeF4d2sP7O pealan-prod-molly deploy key (2026-05-20)'
 
 # 1. Service user — no password, no sudo. Default shell so rsync can exec,
 #    but the authorized_keys `restrict` directive blocks interactive login.
@@ -88,23 +88,23 @@ Next on the server:
 
     apt-get install -y nginx certbot python3-certbot-nginx
 
-    cat > /etc/nginx/sites-available/molly.gente.com <<'NGINX'
+    cat > /etc/nginx/sites-available/molly.pealan.dev <<'NGINX'
     server {
         listen 80;
         listen [::]:80;
-        server_name molly.gente.com;
+        server_name molly.pealan.dev;
         root $DOCROOT;
         index index.html;
         location / { try_files \$uri \$uri/ =404; }
     }
     NGINX
 
-    ln -sf /etc/nginx/sites-available/molly.gente.com /etc/nginx/sites-enabled/
+    ln -sf /etc/nginx/sites-available/molly.pealan.dev /etc/nginx/sites-enabled/
     nginx -t && systemctl reload nginx
-    certbot --nginx -d molly.gente.com
+    certbot --nginx -d molly.pealan.dev
 
 Then from your laptop:
 
-    rsync -avz --delete bundle/ gente-prod-molly:/
+    rsync -avz --delete bundle/ pealan-prod-molly:/
     # path is "/" because rrsync chroots the key into $DOCROOT
 DONE

@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 # ── configuration ────────────────────────────────────────────────────────────
 BUNDLE = Path("/work/bundle")
-LIVE_URL_BASE = "https://molly.gente.com"           # production URL
+LIVE_URL_BASE = "https://molly.pealan.dev"          # production URL
 SITE_TITLE = "Onde está o Molly?"
 SITE_DESC = (
     "Arquivo dos 13 jogos de “caça ao Molly” do HumorTadela — "
