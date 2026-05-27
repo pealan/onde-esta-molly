@@ -10,6 +10,10 @@
 crash.log
 crash.*.log
 
+# Saved plan files from `terraform plan -out=...`.
+tfplan
+*.tfplan
+
 # Variable files contain real IPs, public keys, profile names.
 # The .example template IS committed; the real one isn't.
 *.tfvars

@@ -59,11 +59,50 @@ data "aws_ami" "ubuntu_arm64" {
   }
 }
 
+# ── Network: VPC + public subnet ───────────────────────────────────────────
+# Newer AWS accounts (especially outside us-east-1) don't get a default VPC,
+# so we provision an explicit one. Self-contained IaC, works on any account.
+
+resource "aws_vpc" "this" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  tags                 = { Name = "pealan-prod-vpc" }
+}
+
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.this.id
+  cidr_block              = "10.0.0.0/24"
+  availability_zone       = "${var.region}a"
+  map_public_ip_on_launch = true
+  tags                    = { Name = "pealan-prod-public" }
+}
+
+resource "aws_internet_gateway" "this" {
+  vpc_id = aws_vpc.this.id
+  tags   = { Name = "pealan-prod-igw" }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.this.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.this.id
+  }
+  tags = { Name = "pealan-prod-public" }
+}
+
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
 # ── Network access ─────────────────────────────────────────────────────────
 
 resource "aws_security_group" "web" {
   name        = "pealan-prod-web"
   description = "molly.pealan.dev — SSH admin-only, HTTP/HTTPS public"
+  vpc_id      = aws_vpc.this.id
 
   ingress {
     description = "SSH (admin IP only)"
@@ -109,6 +148,7 @@ resource "aws_instance" "web" {
   ami                    = data.aws_ami.ubuntu_arm64.id
   instance_type          = var.instance_type
   key_name               = aws_key_pair.admin.key_name
+  subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web.id]
 
   root_block_device {
