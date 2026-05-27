@@ -142,7 +142,63 @@ explaining the rename for future-me.
 
 ---
 
-## 2026-05-27 — AWS bootstrap journey (in progress)
+## 2026-05-27 — Deploy lands. Site is live.
+
+Continued from yesterday's `VPCIdNotSpecified` block. Added the explicit
+VPC stack (`vpc + public subnet + igw + route_table + association`),
+extended `iam-policy-gente-admin.json` with `ec2:*Vpc / *Subnet /
+*InternetGateway / *RouteTable / *Route` actions, re-ran
+`bootstrap-iam.sh` in CloudShell.
+
+`terraform apply` on the first pass got 5/9 resources in before tripping
+an AWS quirk:
+
+```
+InvalidParameterValue: Value (... — SSH admin-only ...) for parameter
+GroupDescription is invalid. Character sets beyond ASCII are not
+supported.
+```
+
+The em-dash in the security group description is non-ASCII; AWS rejects
+it. Swapped `—` → `-` in `main.tf:102`, re-applied, the remaining 4
+resources landed clean. Total infra: VPC + IGW + subnet + route table +
+SG + t4g.nano + EIP `15.229.196.141` + zone + A record for
+`molly.pealan.dev`.
+
+DNS delegation at Porkbun (4 AWS nameservers, pasted from `terraform
+output nameservers`) propagated in ~10 minutes.
+
+Server-side bootstrap (over SSH as `ubuntu`):
+- `apt-get install -y nginx certbot python3-certbot-nginx rsync`
+- `scripts/server-provision.sh` — created `molly-deploy` user (uid 1001),
+  docroot at `/var/www/molly.pealan.dev`, scoped `authorized_keys` line
+  (`restrict,command="rrsync /var/www/molly.pealan.dev"`), rrsync
+  symlinked from `/usr/share/rsync/rrsync` onto PATH.
+- Nginx vhost wired, default site removed.
+- `certbot --nginx --non-interactive --agree-tos --email ... --redirect`
+  → cert valid until 2026-08-25, HTTP→HTTPS 301 redirect installed,
+  systemd renewal timer in place.
+
+Then the deploy itself hit one last papercut: the dev container couldn't
+SSH (`No user exists for uid 1000`). OpenSSH calls `getpwuid()` and the
+container had no `/etc/passwd` entry for uid 1000 — only a chmod-777
+`/home/dev`. Fixed in the Dockerfile by adding a `dev` user via `useradd
+-u ${USER_UID} -g ${USER_GID}` (build-args, default 1000:1000). Rebuilt
+the image; `./dev rsync -avz --delete bundle/ pealan-prod-molly:/`
+worked first try and uploaded 7 MB to the rrsync-scoped target.
+
+Smoke test:
+- `https://molly.pealan.dev/` → HTTP/1.1 200
+- `https://molly.pealan.dev/jogo-01.html` → 200
+- `https://molly.pealan.dev/images/molly/icones/00001-q.gif` → 200
+- `http://molly.pealan.dev/` → 301 to HTTPS
+
+Total elapsed across all iterations: 9 days; recurring deploy cost is now
+~10s of `./dev rsync ...`.
+
+---
+
+## 2026-05-26/27 — AWS bootstrap journey (DONE)
 
 CloudShell IAM bootstrap landed cleanly: `infra/bootstrap-iam.sh` runs
 once, idempotent, creates the `gente-admin` IAM user with the inline
@@ -180,67 +236,7 @@ self-contained IaC, works on any account" is the right story.
 
 ## NEXT STEPS (active)
 
-### 1. Add explicit VPC to the Terraform module (in progress)
-
-What to add to `infra/main.tf`:
-
-```hcl
-resource "aws_vpc" "this" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  tags = { Name = "pealan-prod-vpc" }
-}
-
-resource "aws_subnet" "public" {
-  vpc_id                  = aws_vpc.this.id
-  cidr_block              = "10.0.0.0/24"
-  availability_zone       = "${var.region}a"
-  map_public_ip_on_launch = true
-  tags = { Name = "pealan-prod-public" }
-}
-
-resource "aws_internet_gateway" "this" {
-  vpc_id = aws_vpc.this.id
-  tags   = { Name = "pealan-prod-igw" }
-}
-
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.this.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.this.id
-  }
-  tags = { Name = "pealan-prod-public" }
-}
-
-resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public.id
-  route_table_id = aws_route_table.public.id
-}
-```
-
-Then wire `aws_security_group.web.vpc_id = aws_vpc.this.id` and
-`aws_instance.web.subnet_id = aws_subnet.public.id`.
-
-**IAM policy additions** (`iam-policy-gente-admin.json`, then re-run
-`bash bootstrap-iam.sh` in CloudShell):
-- `ec2:CreateVpc`, `ec2:DeleteVpc`, `ec2:ModifyVpcAttribute`
-- `ec2:CreateSubnet`, `ec2:DeleteSubnet`, `ec2:ModifySubnetAttribute`
-- `ec2:CreateInternetGateway`, `ec2:DeleteInternetGateway`,
-  `ec2:AttachInternetGateway`, `ec2:DetachInternetGateway`
-- `ec2:CreateRouteTable`, `ec2:DeleteRouteTable`,
-  `ec2:AssociateRouteTable`, `ec2:DisassociateRouteTable`,
-  `ec2:CreateRoute`, `ec2:DeleteRoute`
-
-**Then**: `terraform apply` will pick up where it left off — zone and
-key pair already exist (state has them), VPC stack gets created, then
-SG/instance/EIP/A record.
-
-### 2. Finish the deploy (steps 7–9 of DEPLOY.md)
-DNS delegation at Porkbun → server-side bootstrap via SSH → first rsync.
-
-### 3. Help overlay revealing answer locations (carried over)
+### 1. Help overlay revealing answer locations (carried over)
 Toggle that overlays markers on each scene `<img>` from the existing
 `<area>` coords. Build into the shared `js/molly-extras.js` so the
 popup wiring and the help overlay ship together.
