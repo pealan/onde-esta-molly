@@ -198,6 +198,58 @@ Total elapsed across all iterations: 9 days; recurring deploy cost is now
 
 ---
 
+## 2026-05-27 (cont.) — Real titles + responsive layout
+
+With the site live, two cosmetic items from the open list landed in the
+same session: per-game proper titles and a layout pass for the game pages.
+
+**Titles.** What I had framed as a "research project" — matching revived
+game N to original 2005 edition N by character roster — turned out to be
+30 seconds of reading the 13 `bundle/images/molly/apresentacao/N.gif`
+banners, each of which already carries the real edition title rendered
+on top of period art:
+
+  1: Inferno   ·  2: Molly na Praia   ·  3: Mollywood   ·  4: Parque
+  5: Céu       ·  6: Festa Junina    ·  7: Coliseu     ·  8: Castelo Mal Assombrado
+  10: Guerra de Tróia  ·  11: Sambódromo  ·  12: Olimpíadas
+  13: Futebol  ·  14: Natal do Molly  (edition 9 was never republished)
+
+Wired into `scripts/polish.py` as a `GAME_TITLES` dict + idempotent
+regex patches on the landing-grid tiles, the per-game `<title>` tags,
+and the OG/Twitter meta titles. Re-runs of polish are no-ops.
+
+**Layout pass — responsive scene + sticky HUD.** The bundle's per-game
+pages were the revived site's `<table>`-based two-column layout from
+2013: scene on the left, character icon grid on the right, fixed-pixel
+`<area coords>` so the scene couldn't be scaled without breaking
+hotspots. Pure-additive changes in `bundle/js/molly-extras.js`
+(no per-page HTML edits):
+
+- **Sticky HUD**: blue/gold bar with ← back, "Jogo N — Title" (parsed
+  from `<title>`), counter pills (found / tentativas), help-stub,
+  restart. Counter mirrors the original `#mollyTentativas` and
+  `#mollyEncontrados` spans via `MutationObserver`, so the inline page
+  script keeps writing to its original DOM nodes unmodified — the HUD
+  just observes.
+- **Responsive scene**: `<area coords>` get rescaled to match rendered
+  `<img>` size on load + resize + `ResizeObserver`. Originals stashed
+  once in `data-coords-orig`. `pulseAt()` no longer multiplies by the
+  scale factor (coords are now in CSS-pixel space).
+- **Layout flip**: scoped to `body.molly-layout`, the original
+  `<table>` becomes a CSS grid (`1fr minmax(280px,360px)`) that
+  collapses to one column under 900px. The icon grid (nested table)
+  gets tighter spacing, smaller icons, modern card-like styling.
+  Legacy blue header + duplicated counter divs hidden, not removed.
+
+This also lays the rails for the help-overlay TODO: the scale math now
+lives in one place, so drawing markers from `<area>` coords is a
+straightforward addition. Verified locally against jogo-01, jogo-08
+(longest title), and jogo-14 before push. All 13 games share the same
+2-table / single-map / `mollyArea`-hotspot structure, so the shared
+JS/CSS applies uniformly without per-page edits.
+
+---
+
 ## 2026-05-26/27 — AWS bootstrap journey (DONE)
 
 CloudShell IAM bootstrap landed cleanly: `infra/bootstrap-iam.sh` runs
@@ -238,12 +290,68 @@ self-contained IaC, works on any account" is the right story.
 
 ### 1. Help overlay revealing answer locations (carried over)
 Toggle that overlays markers on each scene `<img>` from the existing
-`<area>` coords. Build into the shared `js/molly-extras.js` so the
-popup wiring and the help overlay ship together.
+`<area>` coords. With the responsive-scene scale math now in place
+(`bundle/js/molly-extras.js`), this is mostly: on toggle, iterate
+`<area>` elements, compute `areaCenter(a)` (which already returns
+rendered-space coords), and render a small numbered/coloured marker
+absolutely-positioned over the scene `<img>`. Hide after N seconds
+or on second click. Slot the toggle into the HUD's `.mh-help`
+button (currently an alert stub).
 
-### Open item
-Per-game proper titles: the revived site renumbered editions, so "Jogo N"
-≠ old edition N. Real titles can be recovered by matching each revived
-game's character set against `maps/view_*.html` (`tipo=` names) and the
-2005 index names. The `apresentacao` banner image already carries the
-real name visually.
+### 2. Research: what did the original 2000–2007 layout actually look like?
+The bundle today recreates the **revived** site's look (2013–16,
+`humortadela.bol.uol.com.br`) because that's what survived intact. But
+several clues hint that the **original** PHP site (`humortadela2.uol.com.br/h/jogo/inc/moll/`)
+had a different visual presentation — and recovering it would make the
+archive more faithful, not just "playable" but "playable as it once
+was". Open research threads:
+
+- **The black-background scene framing**. `maps/view_001.html` starts
+  with `bgcolor="#000000" background="im/carregar.gif"` and the scene
+  `<img>` rendered against pure black with no chrome around it. The
+  revived 2013 site put it in a cream/white card; the original may have
+  been a darker, more arcade-like presentation.
+- **What was in `im/`?** The original page references `im/carregar.gif`
+  (background) and `im/pass_moll_001.gif` (the scene itself). The
+  `im_allcaps.txt` Wayback CDX dump has every status-200 capture of
+  `/im/*` from the 2000–2007 era. Worth grepping for non-scene assets:
+  headers, borders, navigation chrome, mascot art, ad slots.
+- **Inter-edition navigation**. The original site was a PHP per-edition
+  page (`moll.php?ed=001&...`). How did players move between editions
+  001 → 002 → ...? Was there an index page? A "next edition" link?
+  Check `sweep_*.txt` and `cdx_moll.txt` for `?ed=` query patterns and
+  any captures of `inc/moll/index.*` or `inc/moll/lista*`.
+- **The `pages/` directory in the workspace** holds untouched original
+  HTML captures (`moll_001_page.html`, `moll_001_popup.html`). Compare
+  the page-level chrome to the revived one — what's structurally
+  different? Header text, footer credits, ad placement, copyright
+  notices, links to other HumorTadela sections.
+- **The lost popups**. We know the per-character gag popups
+  (`pass_moll_NNN_X.html`) are all 400 in Wayback, but the
+  `moll_001_popup.html` capture may have the popup *template* — the
+  HTML wrapper that held the gag text. Even without the gags, the
+  template would let us match the original popup *style* in
+  `molly-extras.js`'s toast (size, fonts, colour, presence of a Molly
+  mascot watermark, etc).
+- **Wayback Frame Captures of the live page**. Try the regular Wayback
+  UI on `web.archive.org/web/*/humortadela2.uol.com.br/h/jogo/inc/moll/*`
+  in the browser — even if `/h/jogo/inc/moll/moll.php?ed=001` is 400,
+  framework pages and screenshots in news articles / old blog posts
+  may show the era's layout. Brazilian retro-internet aficionados
+  occasionally post screenshots.
+- **Image dimensions and grid math**. Scene images are 800×1000. That
+  was a very specific resolution choice for a 1024×768 monitor era
+  (allowing space for the ad sidebar UOL ran). Useful for sanity-
+  checking the original layout's column structure.
+
+Deliverable: a short `RESEARCH_ORIGINAL_LAYOUT.md` (or extension of
+the existing `WORK_DIARY.md`) with a screenshot mosaic of whatever's
+recoverable + a decision on whether to ship an "Original 2000s look"
+mode alongside the current revived-site look.
+
+### Done in this session
+- Real per-game titles wired into the landing tiles, `<title>` tags,
+  and OG meta (`scripts/polish.py` GAME_TITLES dict).
+- Responsive scene image with rescaled `<area coords>`, sticky HUD
+  with live counter, layout flip to CSS grid (all in
+  `bundle/js/molly-extras.js`).
