@@ -116,6 +116,12 @@ Pillow + fonts) runs reproducibly on any host with Docker.
 
 ## Deploy
 
+> **Full end-to-end runbook:** [DEPLOY.md](DEPLOY.md) covers domain purchase,
+> AWS account setup, the CloudShell IAM bootstrap, `terraform apply`, DNS
+> delegation, server-side bootstrap, the first `rsync`, troubleshooting, and
+> cost breakdown. The summary below is the elevator pitch.
+
+
 Static rsync to nginx, using a purpose-bound SSH alias:
 
 ```bash
