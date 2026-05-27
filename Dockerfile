@@ -52,4 +52,14 @@ RUN sed -i 's|<policy domain="coder" rights="none" pattern="\(PS\|EPS\|PDF\|XPS\
 RUN mkdir -p /home/dev/.config/gh /home/dev/.cache /home/dev/.aws \
     && chmod -R 777 /home/dev
 
+# Register a `dev` user matching the host's typical uid/gid (1000:1000).
+# Without a /etc/passwd entry for the runtime uid, OpenSSH refuses to run
+# ("No user exists for uid …" from getpwuid), which breaks `git push` over
+# ssh and the `rsync ... pealan-prod-molly:/` deploy. Override at build time
+# with `--build-arg USER_UID=... USER_GID=...` if your host differs.
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN groupadd -g ${USER_GID} dev \
+    && useradd -u ${USER_UID} -g ${USER_GID} -d /home/dev -s /bin/bash dev
+
 WORKDIR /work

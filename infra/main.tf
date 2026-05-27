@@ -101,7 +101,7 @@ resource "aws_route_table_association" "public" {
 
 resource "aws_security_group" "web" {
   name        = "pealan-prod-web"
-  description = "molly.pealan.dev — SSH admin-only, HTTP/HTTPS public"
+  description = "molly.pealan.dev - SSH admin-only, HTTP/HTTPS public"
   vpc_id      = aws_vpc.this.id
 
   ingress {
