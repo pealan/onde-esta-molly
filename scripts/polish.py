@@ -33,6 +33,24 @@ PORTFOLIO_URL = ""   # not in scope yet
 OG_CARD = "og-card.png"
 FAVICON = "favicon.gif"
 
+# Per-game titles transcribed from each game's apresentacao banner
+# (bundle/images/molly/apresentacao/N.gif). Edition 9 was never republished.
+GAME_TITLES = {
+    1:  "Inferno",
+    2:  "Molly na Praia",
+    3:  "Mollywood",
+    4:  "Parque",
+    5:  "Céu",
+    6:  "Festa Junina",
+    7:  "Coliseu",
+    8:  "Castelo Mal Assombrado",
+    10: "Guerra de Tróia",
+    11: "Sambódromo",
+    12: "Olimpíadas",
+    13: "Futebol",
+    14: "Natal do Molly",
+}
+
 # Molly's authentic icon from jogo 1 (verified via <img id="iconeN"> lookup)
 MOLLY_HERO_ICON = BUNDLE / "images/molly/icones/00001-q.gif"
 
@@ -144,7 +162,8 @@ def inject_head(path: Path, page_title: str, page_url: str) -> None:
 def rewrite_index() -> None:
     """Rewrite index.html: keep the existing 13-card grid, replace the
     surrounding chrome with a proper landing page (hero, About details,
-    portfolio-grade footer)."""
+    portfolio-grade footer). Patches each tile label and banner alt with
+    the real game title from GAME_TITLES."""
     path = BUNDLE / "index.html"
     src = path.read_text(encoding="utf-8")
 
@@ -153,10 +172,24 @@ def rewrite_index() -> None:
         sys.exit("! index.html: could not locate <div class='grid'>…")
     grid_html = m.group(0).rstrip()
 
+    def label_sub(m: re.Match) -> str:
+        n = int(m.group(1))
+        title = GAME_TITLES.get(n)
+        return f"<b>Jogo {n} — {html.escape(title)}</b>" if title else m.group(0)
+
+    def alt_sub(m: re.Match) -> str:
+        n = int(m.group(1))
+        title = GAME_TITLES.get(n)
+        return f'alt="Jogo {n} — {html.escape(title, quote=True)}"' if title else m.group(0)
+
+    # Idempotent: matches "Jogo N" only, not "Jogo N — Title".
+    grid_html = re.sub(r"<b>Jogo (\d+)</b>", label_sub, grid_html)
+    grid_html = re.sub(r'alt="Jogo (\d+)"', alt_sub, grid_html)
+
     new = LANDING_TEMPLATE.replace("{{GRID}}", grid_html)
     # inject_head() runs after this, so we leave </head> untouched here.
     path.write_text(new, encoding="utf-8")
-    print("  index.html → rebuilt landing (grid preserved)")
+    print("  index.html → rebuilt landing (grid + tile titles)")
 
 
 LANDING_TEMPLATE = """<!DOCTYPE html>
@@ -279,7 +312,8 @@ def main() -> None:
     s = s.replace("REPLACEME_GHURL", GITHUB_REPO_URL)
     idx.write_text(s, encoding="utf-8")
 
-    # 3. inject head meta + favicon link into every HTML page
+    # 3. inject head meta + favicon link into every HTML page; patch the
+    #    existing <title> on per-game pages to include the real game title.
     files = sorted(BUNDLE.glob("*.html"))
     for f in files:
         if f.name == "index.html":
@@ -289,8 +323,20 @@ def main() -> None:
             m = re.match(r"jogo-(\d+)\.html", f.name)
             if not m: continue
             n = int(m.group(1))
-            page_title = f"{SITE_TITLE} — Jogo {n}"
+            real = GAME_TITLES.get(n)
+            page_title = f"{SITE_TITLE} — Jogo {n}: {real}" if real else f"{SITE_TITLE} — Jogo {n}"
             page_url = f"{LIVE_URL_BASE}/{f.name}"
+            if real:
+                src = f.read_text(encoding="utf-8")
+                # Idempotent: tolerate either "Jogo N" or "Jogo N: <anything>".
+                src, count = re.subn(
+                    r"<title>([^<]*Jogo )" + str(n) + r"(?::[^<]*)?</title>",
+                    rf"<title>\g<1>{n}: {html.escape(real)}</title>",
+                    src,
+                    count=1,
+                )
+                if count:
+                    f.write_text(src, encoding="utf-8")
         inject_head(f, page_title, page_url)
         print(f"  meta → {f.name}")
 
