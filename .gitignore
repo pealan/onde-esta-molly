@@ -22,6 +22,10 @@ revived/
 # old packaged deliverable — rebuildable from bundle/
 onde-esta-o-molly.zip
 
+# deploy stamp — written by polish.py, served live; truth lives on the server,
+# committing the file would always be N-1 commits stale.
+bundle/.version
+
 # python / editor cruft
 __pycache__/
 *.pyc
