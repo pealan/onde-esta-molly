@@ -15,6 +15,7 @@ import html
 import os
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
@@ -340,7 +341,20 @@ def main() -> None:
         inject_head(f, page_title, page_url)
         print(f"  meta → {f.name}")
 
-    # 4. live URL line in LEIA-ME.txt (idempotent)
+    # 4. stamp the deploy with the current git SHA so `scripts/deploy-status.sh`
+    #    can answer "is HEAD live?" by comparing curl https://<host>/.version
+    #    against `git rev-parse HEAD`. Falls back gracefully outside a repo.
+    stamp = subprocess.run(
+        ["git", "-C", str(BUNDLE.parent), "rev-parse", "HEAD"],
+        capture_output=True, text=True,
+    )
+    if stamp.returncode == 0:
+        (BUNDLE / ".version").write_text(stamp.stdout.strip() + "\n", encoding="utf-8")
+        print(f"  .version → {stamp.stdout.strip()[:12]}")
+    else:
+        print("  .version (git rev-parse failed, skipping)")
+
+    # 5. live URL line in LEIA-ME.txt (idempotent)
     leiame = BUNDLE / "LEIA-ME.txt"
     if leiame.exists():
         text = leiame.read_text(encoding="utf-8")
