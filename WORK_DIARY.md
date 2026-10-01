@@ -340,6 +340,31 @@ into the 443 block's `location /` (not the simple port-80 block in
 
 ---
 
+## 2026-09-30 — Public-repo security pass
+
+Audit of the public repo found no credentials in the tree or history. Closed
+the low-severity leftovers:
+
+- **History NOT rewritten (open).** The commit author email, and the old
+  Elastic IP / zone ID / deploy public key, are still readable in earlier
+  commits. Scrubbing them needs a history rewrite + force-push, which
+  changes every SHA; pending Pedro's call.
+- **`scripts/server-provision.sh`** no longer bakes in a deploy public key;
+  it is a required argument (or `DEPLOY_PUBKEY`), ed25519 only.
+- **`infra/iam-policy-gente-admin.json`**: EC2 statements pinned to
+  `sa-east-1`; stop/terminate/modify limited to instances tagged
+  `ManagedBy=terraform`. Takes effect only after re-running
+  `infra/bootstrap-iam.sh` in CloudShell. Route53 stays `*` (scoping it means
+  publishing the zone ID).
+- **nginx**: `infra/nginx/security-headers.conf` (nosniff, frame deny,
+  referrer policy, HSTS, CSP) + `server_tokens off`. Repo template only —
+  **not yet applied to the live box**.
+- **Bundle**: removed the dead UOL ad loader (`DEshow`, `document.write` of
+  an `http://bn.uol.com.br` script) from `functions.js`. No caller existed.
+  **Not yet deployed.**
+
+---
+
 ## NEXT STEPS (active)
 
 ### 1. Help overlay revealing answer locations (carried over)

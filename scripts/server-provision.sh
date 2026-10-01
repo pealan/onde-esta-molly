@@ -31,7 +31,16 @@ fi
 
 DEPLOY_USER="molly-deploy"
 DOCROOT="/var/www/molly.pealan.dev"
-PUBKEY='ssh-ed25519 AAAA...REDACTED pealan-prod-molly deploy key (2026-05-20)'
+# The deploy public key is supplied by whoever runs this — never baked into the
+# repo, so a fork can't accidentally authorize someone else's key.
+#   sudo ./server-provision.sh "$(cat id_ed25519_deploy.pub)"
+#   sudo DEPLOY_PUBKEY="ssh-ed25519 AAAA... comment" ./server-provision.sh
+PUBKEY="${1:-${DEPLOY_PUBKEY:-}}"
+if [[ ! "$PUBKEY" =~ ^ssh-ed25519\ AAAA[A-Za-z0-9+/=]+(\ .*)?$ ]]; then
+    echo "Usage: sudo $0 '<ssh-ed25519 deploy public key>'" >&2
+    echo "       (or set DEPLOY_PUBKEY). Only ed25519 keys are accepted." >&2
+    exit 1
+fi
 
 # 1. Service user — no password, no sudo. Default shell so rsync can exec,
 #    but the authorized_keys `restrict` directive blocks interactive login.
@@ -92,6 +101,9 @@ Next on the server:
     # The Cache-Control: no-cache line makes every response revalidate via ETag
     # so a fresh rsync is visible on the next reload (no Ctrl+F5). See that file
     # and WORK_DIARY.md (2026-05-28) for the full rationale.
+    # Copy infra/nginx/security-headers.conf from the repo to
+    # /etc/nginx/snippets/molly-security-headers.conf first, and set
+    # `server_tokens off;` in the http block of /etc/nginx/nginx.conf.
     cat > /etc/nginx/sites-available/molly.pealan.dev <<'NGINX'
     server {
         listen 80;
@@ -99,9 +111,11 @@ Next on the server:
         server_name molly.pealan.dev;
         root $DOCROOT;
         index index.html;
+        include snippets/molly-security-headers.conf;   # see infra/nginx/
         location / {
             try_files \$uri \$uri/ =404;
             add_header Cache-Control "no-cache" always;
+            include snippets/molly-security-headers.conf;
         }
     }
     NGINX

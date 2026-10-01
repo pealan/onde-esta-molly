@@ -41,7 +41,7 @@ output "next_steps" {
 
     4. Bootstrap (creates molly-deploy user, scoped key, rrsync):
          curl -fsSLO https://raw.githubusercontent.com/pealan/onde-esta-molly/main/scripts/server-provision.sh
-         chmod +x server-provision.sh && sudo ./server-provision.sh
+         chmod +x server-provision.sh && sudo ./server-provision.sh "<your deploy public key>"
          # the script prints the nginx + certbot commands to run next
 
     5. From your laptop, in the repo root:

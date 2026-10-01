@@ -7,13 +7,30 @@
       "Action": [
         "ec2:Describe*"
       ],
-      "Resource": "*"
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "sa-east-1"
+        }
+      }
     },
     {
-      "Sid": "EC2InstanceLifecycle",
+      "Sid": "EC2RunInstances",
       "Effect": "Allow",
       "Action": [
-        "ec2:RunInstances",
+        "ec2:RunInstances"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "sa-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "EC2InstanceLifecycleTaggedOnly",
+      "Effect": "Allow",
+      "Action": [
         "ec2:TerminateInstances",
         "ec2:StartInstances",
         "ec2:StopInstances",
@@ -21,7 +38,13 @@
         "ec2:ModifyInstanceAttribute",
         "ec2:ModifyInstanceMetadataOptions"
       ],
-      "Resource": "*"
+      "Resource": "arn:aws:ec2:sa-east-1:*:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "sa-east-1",
+          "ec2:ResourceTag/ManagedBy": "terraform"
+        }
+      }
     },
     {
       "Sid": "EC2NetworkingAndStorage",
@@ -47,7 +70,12 @@
         "ec2:CreateVolume",
         "ec2:DeleteVolume"
       ],
-      "Resource": "*"
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "sa-east-1"
+        }
+      }
     },
     {
       "Sid": "EC2VpcManagement",
@@ -71,7 +99,12 @@
         "ec2:DeleteRoute",
         "ec2:ReplaceRoute"
       ],
-      "Resource": "*"
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "sa-east-1"
+        }
+      }
     },
     {
       "Sid": "Route53ZoneAndRecordManagement",

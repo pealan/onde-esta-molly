@@ -204,7 +204,7 @@ sudo apt-get install -y nginx certbot python3-certbot-nginx rsync
 
 curl -fsSLO https://raw.githubusercontent.com/pealan/onde-esta-molly/main/scripts/server-provision.sh
 chmod +x server-provision.sh
-sudo ./server-provision.sh
+sudo ./server-provision.sh "ssh-ed25519 AAAA... your-deploy-key"   # your deploy PUBLIC key
 ```
 
 `server-provision.sh` creates the `molly-deploy` service user, the docroot
