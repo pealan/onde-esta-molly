@@ -88,6 +88,10 @@ Next on the server:
 
     apt-get install -y nginx certbot python3-certbot-nginx
 
+    # Canonical, commented copy of this vhost: infra/nginx/molly.pealan.dev.conf
+    # The Cache-Control: no-cache line makes every response revalidate via ETag
+    # so a fresh rsync is visible on the next reload (no Ctrl+F5). See that file
+    # and WORK_DIARY.md (2026-05-28) for the full rationale.
     cat > /etc/nginx/sites-available/molly.pealan.dev <<'NGINX'
     server {
         listen 80;
@@ -95,7 +99,10 @@ Next on the server:
         server_name molly.pealan.dev;
         root $DOCROOT;
         index index.html;
-        location / { try_files \$uri \$uri/ =404; }
+        location / {
+            try_files \$uri \$uri/ =404;
+            add_header Cache-Control "no-cache" always;
+        }
     }
     NGINX
 

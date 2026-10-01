@@ -286,6 +286,60 @@ self-contained IaC, works on any account" is the right story.
 
 ---
 
+## 2026-05-28 — Cache-Control: kill the stale-until-hard-refresh
+
+Symptom: after a deploy, the browser kept serving the old version until a
+Ctrl+F5. Classic browser-cache staleness — confirmed it was *only* the
+browser, not the server holding stale state.
+
+**Diagnosis** (`curl -sSI` against the live URLs): nginx was sending `ETag`
+and `Last-Modified` but **no `Cache-Control` at all**. With no explicit
+freshness directive, browsers fall back to heuristic caching (RFC 9111
+§4.2.2): a file is treated as fresh for ~10% of its age since
+`Last-Modified`, served from cache *without revalidating*. `functions.js`
+was 9 days old → ~20h of stale-without-asking. Headers also showed
+`Server: nginx/1.24.0` with no `Age`/`CF-*` — so there's no CDN in front;
+the browser is the only cache layer (no purge step needed).
+
+**Decision — `no-cache`, not fingerprinting.** The bundle's assets are not
+content-fingerprinted (`functions.js`, `jogo-01.html` keep stable names
+across deploys), so we can't cache anything "forever" without reintroducing
+staleness. `Cache-Control: no-cache` ("store, but revalidate before reuse")
++ the ETag nginx already emits turns every request into a conditional GET:
+304 (no body) when unchanged, fresh 200 the moment we rsync. For a tiny
+static archive that's the right correctness/effort trade — fingerprinting
+(hashed filenames + `immutable, max-age=1yr`) is noted as the future upgrade
+if asset weight ever matters, but it's machinery this traffic doesn't need.
+
+**Captured in the repo** (config-as-code, like the rest of the deploy):
+- `infra/nginx/molly.pealan.dev.conf` — canonical, commented HTTP vhost with
+  the `add_header Cache-Control "no-cache" always;` in `location /`. Notes
+  that certbot augments the live copy with the 443 listener + HTTP→HTTPS
+  redirect (host-specific, deliberately untracked).
+- `scripts/server-provision.sh` — heredoc vhost updated to match, so a fresh
+  provision is cache-correct from the start.
+- `DEPLOY.md` — Step 8 points at the canonical conf; new Troubleshooting row
+  for the exact "deployed but browser shows old version" symptom.
+
+**Applied to prod.** Two deploy paths exist and I initially conflated them:
+the `pealan-prod-molly` key is `rrsync`-scoped (content only, no shell), but
+the `ubuntu@molly.pealan.dev` admin login (`~/.ssh/id_ed25519`, via
+`./dev ssh`) — the same one used for the 2026-05-27 bootstrap — has sudo and
+*is* how server-config changes ship. Applied over that login: backed up the
+live vhost (`.bak.20260529-020944`), edited the `location /` inside certbot's
+443 block to add `add_header Cache-Control "no-cache" always;`, `nginx -t`
+(ok), `systemctl reload nginx`. Verified live: `/` and `/js/functions.js`
+both return `Cache-Control: no-cache`, and a conditional GET with the ETag
+returns `304` — revalidation works, so deploys now show on a normal reload.
+
+Note the certbot reality vs. the repo template: certbot had split the vhost
+into a `:443` content block + a `:80→443` redirect block, so the header went
+into the 443 block's `location /` (not the simple port-80 block in
+`infra/nginx/molly.pealan.dev.conf`). The repo copy stays the canonical
+*pre-certbot* template; the live file is its certbot-augmented form.
+
+---
+
 ## NEXT STEPS (active)
 
 ### 1. Help overlay revealing answer locations (carried over)

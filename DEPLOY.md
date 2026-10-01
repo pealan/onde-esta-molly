@@ -212,6 +212,13 @@ at `/var/www/molly.<your-domain>`, the scoped `authorized_keys` line, and
 the `rrsync` symlink. On success it prints the nginx vhost + certbot
 commands to run next — copy-paste them.
 
+The printed vhost mirrors the canonical, commented copy at
+[`infra/nginx/molly.pealan.dev.conf`](infra/nginx/molly.pealan.dev.conf). It
+includes `add_header Cache-Control "no-cache"`, which makes every response
+revalidate via its ETag — so a fresh `rsync` is visible on the next normal
+reload instead of being served stale from the browser cache (see the
+[Troubleshooting](#troubleshooting-the-things-that-bit-me) row below).
+
 After certbot finishes, exit the SSH session.
 
 ---
@@ -252,6 +259,7 @@ Subsequent deploys are just the `rsync` line.
 | `VPCIdNotSpecified: No default VPC for this user` | Newer AWS accounts in non-US regions don't get a default VPC. The current Terraform module creates its own VPC; if you're on an older commit, `git pull`. |
 | DNS still not resolving after >1 hour | Did you save the NS records at the registrar? Some registrars (Cloudflare via "import existing zone") cache conflicting records. `dig +trace molly.<your-domain>` shows the delegation chain. |
 | Certbot fails: "no A record" | DNS hasn't propagated yet. Wait, re-check `dig`. Don't loop certbot — Let's Encrypt rate-limits failures per domain. |
+| Deployed but the browser still shows the old version (needed Ctrl+F5) | nginx wasn't sending `Cache-Control`, so browsers cached assets heuristically and didn't revalidate. Fix is in [`infra/nginx/molly.pealan.dev.conf`](infra/nginx/molly.pealan.dev.conf): add `add_header Cache-Control "no-cache" always;` inside `location /` of the **live** vhost (the certbot-managed 443 block in `/etc/nginx/sites-available/molly.pealan.dev`), then `sudo nginx -t && sudo systemctl reload nginx`. Verify with `curl -sSI https://molly.<your-domain>/ \| grep -i cache-control`. The rrsync deploy key can't do this — it's rsync-only, so apply it over your `ubuntu` sudo login. |
 
 ---
 
