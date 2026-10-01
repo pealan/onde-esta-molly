@@ -345,10 +345,10 @@ into the 443 block's `location /` (not the simple port-80 block in
 Audit of the public repo found no credentials in the tree or history. Closed
 the low-severity leftovers:
 
-- **History NOT rewritten (open).** The commit author email, and the old
-  Elastic IP / zone ID / deploy public key, are still readable in earlier
-  commits. Scrubbing them needs a history rewrite + force-push, which
-  changes every SHA; pending Pedro's call.
+- **History rewritten** (force-push, 2026-10-01): commit author email →
+  GitHub noreply; Elastic IP, Route53 zone ID and the old deploy public key
+  scrubbed from every revision. All commit SHAs changed — the live
+  `/.version` stamp predates the rewrite until the next deploy.
 - **`scripts/server-provision.sh`** no longer bakes in a deploy public key;
   it is a required argument (or `DEPLOY_PUBKEY`), ed25519 only.
 - **`infra/iam-policy-gente-admin.json`**: EC2 statements pinned to
